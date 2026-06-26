@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '', // Proxied via Vite config
+  baseURL: import.meta.env.VITE_API_URL || '',
 });
 
 // Automatically inject JWT Token from local storage
