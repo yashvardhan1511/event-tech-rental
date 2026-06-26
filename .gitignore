@@ -29,3 +29,4 @@ backend/test_register_with_otp.js
 backend/test_rapid_email.js
 backend/search_bypass.js
 backend/search_transcript.js
+backend/deploy_db.js
