@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const nodemailer = require('nodemailer');
+const { sendEmail } = require('../utils/mailer');
 
 const createQuote = async (req, res) => {
   const { event_name, event_type, start_date, end_date, attendees, venue_size, budget, special_requirements, bundle_details, subtotal, discount, total } = req.body;
@@ -189,33 +189,7 @@ const sendQuoteEmail = async (req, res) => {
 
     const recipientEmails = Array.from(recipientsSet).join(', ');
 
-    // 2. Set up Nodemailer transporter
-    let transporter;
-    let isTestAccount = false;
-    
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
-        }
-      });
-    } else {
-      isTestAccount = true;
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass
-        }
-      });
-    }
+    // 2. Transporter handled by sendEmail utility
 
     // 3. Compose email contents
     const subject = `Your Quotation Estimate from One Point Solutions: #OPS-2026-${quote.id}`;
@@ -302,7 +276,6 @@ const sendQuoteEmail = async (req, res) => {
     `;
 
     const mailOptions = {
-      from: `"One Point Solutions" <${process.env.SMTP_USER || 'noreply@onepoint.com'}>`,
       to: recipientEmails,
       subject: subject,
       text: `Dear ${quote.username},\n\nPlease find attached the quotation estimate #OPS-2026-${quote.id} for your event: ${quote.event_name}.\n\nTotal Estimate: ₹${parseFloat(quote.total).toLocaleString('en-IN')}\n\nBest Regards,\nOne Point Solutions Support Team`,
@@ -310,28 +283,18 @@ const sendQuoteEmail = async (req, res) => {
       attachments: [
         {
           filename: fileName || `Quote_Estimate_OPS_${quote.id}.pdf`,
-          content: Buffer.from(pdfBase64, 'base64'),
+          content: pdfBase64,
           contentType: 'application/pdf'
         }
       ]
     };
 
-    const info = await transporter.sendMail(mailOptions);
-
-    let previewUrl = null;
-    if (isTestAccount) {
-      previewUrl = nodemailer.getTestMessageUrl(info);
-      console.log('--------------------------------------------');
-      console.log('📧 Ethereal Test Email Sent successfully!');
-      console.log(`Recipient(s): ${recipientEmails}`);
-      console.log('Preview URL: %s', previewUrl);
-      console.log('--------------------------------------------');
-    }
+    const info = await sendEmail(mailOptions);
 
     res.json({
       message: 'Quotation email sent successfully.',
       recipient: recipientEmails,
-      previewUrl: previewUrl
+      previewUrl: info && info.previewUrl ? info.previewUrl : null
     });
 
   } catch (error) {

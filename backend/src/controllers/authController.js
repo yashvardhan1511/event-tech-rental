@@ -5,7 +5,7 @@ const https = require('https');
 const dnsModule = require('dns');
 dnsModule.setDefaultResultOrder('ipv4first');
 const dns = dnsModule.promises;
-const nodemailer = require('nodemailer');
+const { sendEmail } = require('../utils/mailer');
 require('dotenv').config();
 
 const otpCache = {};
@@ -150,49 +150,8 @@ const sendOtp = async (req, res) => {
       expires: Date.now() + 10 * 60 * 1000 // 10 minutes expiry
     };
 
-    // 5. Send OTP via Nodemailer
-    let transporter;
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      const isGmail = process.env.SMTP_HOST.includes('gmail.com');
-      const transportConfig = isGmail ? {
-        service: 'gmail',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
-        },
-        connectionTimeout: 10000, // 10 seconds timeout
-        socketTimeout: 15000,
-        family: 4 // Force IPv4
-      } : {
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
-        },
-        connectionTimeout: 10000,
-        socketTimeout: 15000,
-        family: 4 // Force IPv4
-      };
-      
-      transporter = nodemailer.createTransport(transportConfig);
-    } else {
-      // Fallback Ethereal
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass
-        }
-      });
-    }
-
+    // 5. Send OTP via our mailer helper
     const mailOptions = {
-      from: `"One Point Solutions" <${process.env.SMTP_USER || 'noreply@onepoint.com'}>`,
       to: emailLower,
       subject: 'One Point Solutions - Email Verification Code',
       text: `Your email verification code is: ${otp}. It will expire in 10 minutes.`,
@@ -222,16 +181,13 @@ const sendOtp = async (req, res) => {
     };
 
     try {
-      const info = await transporter.sendMail(mailOptions);
-      if (!process.env.SMTP_HOST) {
-        console.log('--------------------------------------------');
-        console.log('📧 Registration OTP Ethereal Preview URL: %s', nodemailer.getTestMessageUrl(info));
-        console.log('OTP Code generated: %s', otp);
-        console.log('--------------------------------------------');
+      const info = await sendEmail(mailOptions);
+      if (info && info.previewUrl) {
+        console.log('Ethereal preview URL:', info.previewUrl);
       }
       res.json({ message: 'Verification code sent successfully.' });
     } catch (mailErr) {
-      console.warn('Nodemailer sendMail failed (likely due to Render SMTP restrictions):', mailErr.message);
+      console.warn('Mail sending failed, activating offline logs fallback:', mailErr.message);
       console.log('--------------------------------------------');
       console.log('⚠️ SMTP mail delivery failed (Render Free tier SMTP block active).');
       console.log('OTP Code generated (retrieve from server logs):', otp);
