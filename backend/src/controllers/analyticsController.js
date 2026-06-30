@@ -67,7 +67,7 @@ const getEquipmentUtilization = async (req, res) => {
         e.total_quantity,
         CAST(COALESCE(SUM(be.quantity), 0) AS SIGNED) AS total_rented,
         COUNT(be.id) AS rental_frequency,
-        ROUND(MIN(100.0, (COALESCE(SUM(be.quantity), 0.0) / CAST(e.total_quantity AS DECIMAL(10,2))) * 100.0), 1) AS utilization_rate
+        ROUND(LEAST(100.0, (COALESCE(SUM(be.quantity), 0.0) / CAST(e.total_quantity AS DECIMAL(10,2))) * 100.0), 1) AS utilization_rate
       FROM equipment e
       LEFT JOIN booking_equipment be ON e.id = be.equipment_id
       LEFT JOIN bookings b ON be.booking_id = b.id AND b.status IN ('confirmed', 'in_progress', 'completed', 'pending')
