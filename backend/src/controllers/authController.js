@@ -221,16 +221,28 @@ const sendOtp = async (req, res) => {
       `
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    if (!process.env.SMTP_HOST) {
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      if (!process.env.SMTP_HOST) {
+        console.log('--------------------------------------------');
+        console.log('📧 Registration OTP Ethereal Preview URL: %s', nodemailer.getTestMessageUrl(info));
+        console.log('OTP Code generated: %s', otp);
+        console.log('--------------------------------------------');
+      }
+      res.json({ message: 'Verification code sent successfully.' });
+    } catch (mailErr) {
+      console.warn('Nodemailer sendMail failed (likely due to Render SMTP restrictions):', mailErr.message);
       console.log('--------------------------------------------');
-      console.log('📧 Registration OTP Ethereal Preview URL: %s', nodemailer.getTestMessageUrl(info));
-      console.log('OTP Code generated: %s', otp);
+      console.log('⚠️ SMTP mail delivery failed (Render Free tier SMTP block active).');
+      console.log('OTP Code generated (auto-filling on client):', otp);
       console.log('--------------------------------------------');
+
+      res.json({
+        message: 'Verification code generated (SMTP bypass active).',
+        devFallback: true,
+        otp: otp
+      });
     }
-
-    res.json({ message: 'Verification code sent successfully.' });
-
   } catch (error) {
     console.error('Error sending OTP:', error);
     res.status(500).json({ message: 'Error sending email verification code.' });

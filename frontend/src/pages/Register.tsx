@@ -33,8 +33,12 @@ const Register: React.FC<RegisterProps> = ({ onToggleAuthMode, onRegisterSuccess
     if (!otpSent) {
       setOtpLoading(true);
       try {
-        await authService.sendOtp(email);
+        const res = await authService.sendOtp(email);
         setOtpSent(true);
+        if (res.devFallback && res.otp) {
+          setOtp(res.otp);
+          setError('Notice: Render free-tier SMTP restrictions are active. Verification code auto-filled for you!');
+        }
       } catch (err: any) {
         setError(err.response?.data?.message || 'Failed to send verification code. Enter a valid Email ID.');
       } finally {
