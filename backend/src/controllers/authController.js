@@ -234,13 +234,12 @@ const sendOtp = async (req, res) => {
       console.warn('Nodemailer sendMail failed (likely due to Render SMTP restrictions):', mailErr.message);
       console.log('--------------------------------------------');
       console.log('⚠️ SMTP mail delivery failed (Render Free tier SMTP block active).');
-      console.log('OTP Code generated (auto-filling on client):', otp);
+      console.log('OTP Code generated (retrieve from server logs):', otp);
       console.log('--------------------------------------------');
 
       res.json({
         message: 'Verification code generated (SMTP bypass active).',
-        devFallback: true,
-        otp: otp
+        devFallback: true
       });
     }
   } catch (error) {
