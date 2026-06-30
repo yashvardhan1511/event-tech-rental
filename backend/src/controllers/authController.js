@@ -2,7 +2,9 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const https = require('https');
-const dns = require('dns').promises;
+const dnsModule = require('dns');
+dnsModule.setDefaultResultOrder('ipv4first');
+const dns = dnsModule.promises;
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
@@ -159,7 +161,8 @@ const sendOtp = async (req, res) => {
           pass: process.env.SMTP_PASS
         },
         connectionTimeout: 10000, // 10 seconds timeout
-        socketTimeout: 15000
+        socketTimeout: 15000,
+        family: 4 // Force IPv4
       } : {
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT) || 587,
@@ -169,7 +172,8 @@ const sendOtp = async (req, res) => {
           pass: process.env.SMTP_PASS
         },
         connectionTimeout: 10000,
-        socketTimeout: 15000
+        socketTimeout: 15000,
+        family: 4 // Force IPv4
       };
       
       transporter = nodemailer.createTransport(transportConfig);
