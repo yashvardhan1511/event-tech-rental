@@ -31,7 +31,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon: Icon, descr
       <div className="flex justify-between items-start">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{title}</p>
-          <h3 className="text-3xl font-extrabold text-white mt-2 tracking-tight">{value}</h3>
+          <h3 className="text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">{value}</h3>
         </div>
         <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-center">
           <Icon className="w-6 h-6" />

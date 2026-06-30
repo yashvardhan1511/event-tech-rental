@@ -19,23 +19,31 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigateToTab }) 
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [equipData, bookingsData] = await Promise.all([
-          equipmentService.getAll(),
-          bookingService.getAll()
-        ]);
-        setEquipment(equipData);
-        setBookings(bookingsData);
-      } catch (error) {
-        console.error('Failed to fetch manager metrics:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async (showLoading = true) => {
+    try {
+      if (showLoading) setLoading(true);
+      const [equipData, bookingsData] = await Promise.all([
+        equipmentService.getAll(),
+        bookingService.getAll()
+      ]);
+      setEquipment(equipData);
+      setBookings(bookingsData);
+    } catch (error) {
+      console.error('Failed to fetch manager metrics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
+  useEffect(() => {
+    fetchData(true);
+
+    // Set up 10-second polling interval
+    const interval = setInterval(() => {
+      fetchData(false);
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Compute metrics
@@ -43,8 +51,8 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigateToTab }) 
   const activeCount = equipment.filter(e => e.status === 'active').length;
   const maintenanceCount = equipment.filter(e => e.status === 'maintenance').length;
   
-  // Total reservations count
-  const activeRentals = bookings.filter(b => ['confirmed', 'in_progress'].includes(b.status)).length;
+  // Total reservations count (now including pending bookings for immediate updates)
+  const activeRentals = bookings.filter(b => ['confirmed', 'in_progress', 'pending'].includes(b.status)).length;
 
   // Filter items needing attention (under maintenance or low availability)
   const attentionItems = equipment.filter(e => 

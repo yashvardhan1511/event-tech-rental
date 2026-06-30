@@ -14,8 +14,9 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (showLoading = true) => {
     try {
+      if (showLoading) setLoading(true);
       setRefreshing(true);
       const [rev, util] = await Promise.all([
         analyticsService.getRevenue(),
@@ -32,7 +33,14 @@ const AdminDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchAnalytics();
+    fetchAnalytics(true);
+
+    // Set up 10-second polling interval
+    const interval = setInterval(() => {
+      fetchAnalytics(false);
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -160,7 +168,7 @@ const AdminDashboard: React.FC = () => {
           <p className="text-sm text-slate-600 mt-1">Global business dashboard checking revenue analytics, pipeline health, and equipment utilization</p>
         </div>
         <button
-          onClick={fetchAnalytics}
+          onClick={() => fetchAnalytics(true)}
           disabled={refreshing}
           className="bg-slate-105 border border-slate-200 hover:bg-slate-200/50 text-slate-700 font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center space-x-2 text-xs cursor-pointer disabled:opacity-50 shadow-sm"
         >

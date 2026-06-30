@@ -7,7 +7,7 @@ const getRevenueAnalytics = async (req, res) => {
       SELECT SUM(q.total) AS total_revenue
       FROM bookings b
       JOIN quotes q ON b.quote_id = q.id
-      WHERE b.status IN ('confirmed', 'in_progress', 'completed')
+      WHERE b.status IN ('confirmed', 'in_progress', 'completed', 'pending')
     `;
     const [revResult] = await db.query(revenueQuery);
     const totalRevenue = parseFloat(revResult[0].total_revenue || '0');
@@ -36,7 +36,7 @@ const getRevenueAnalytics = async (req, res) => {
         COUNT(b.id) AS bookings_count
       FROM bookings b
       JOIN quotes q ON b.quote_id = q.id
-      WHERE b.status IN ('confirmed', 'in_progress', 'completed')
+      WHERE b.status IN ('confirmed', 'in_progress', 'completed', 'pending')
         AND b.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
       GROUP BY month
       ORDER BY month ASC
@@ -70,7 +70,7 @@ const getEquipmentUtilization = async (req, res) => {
         ROUND(MIN(100.0, (COALESCE(SUM(be.quantity), 0.0) / CAST(e.total_quantity AS DECIMAL(10,2))) * 100.0), 1) AS utilization_rate
       FROM equipment e
       LEFT JOIN booking_equipment be ON e.id = be.equipment_id
-      LEFT JOIN bookings b ON be.booking_id = b.id AND b.status IN ('confirmed', 'in_progress', 'completed')
+      LEFT JOIN bookings b ON be.booking_id = b.id AND b.status IN ('confirmed', 'in_progress', 'completed', 'pending')
       GROUP BY e.id
       ORDER BY utilization_rate DESC
       LIMIT 10
