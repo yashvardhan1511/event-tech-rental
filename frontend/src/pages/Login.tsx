@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
@@ -8,97 +8,12 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onToggleAuthMode, onLoginSuccess }) => {
-  const { login, loginWithGoogle } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState<string>('');
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(true);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-
-  // Fetch client ID on mount
-  useEffect(() => {
-    const fetchClientId = async () => {
-      try {
-        const res = await fetch('/api/auth/google-client-id');
-        const data = await res.json();
-        setGoogleClientId(data.clientId);
-        if (data.clientId && !data.clientId.includes('genericplaceholder')) {
-          setIsDemoMode(false);
-        }
-      } catch (err) {
-        console.error('Failed to load Google Client ID', err);
-      }
-    };
-    fetchClientId();
-  }, []);
-
-  // Initialize real Google Sign-In button if not in demo mode
-  useEffect(() => {
-    if (isDemoMode || !googleClientId) return;
-
-    const initGoogle = () => {
-      if ((window as any).google) {
-        (window as any).google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response: any) => {
-            setError('');
-            setLoading(true);
-            try {
-              await loginWithGoogle(response.credential);
-              const token = localStorage.getItem('token');
-              if (token) {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                onLoginSuccess(payload.role);
-              }
-            } catch (err: any) {
-              setError(err.response?.data?.message || 'Google Sign-In failed.');
-            } finally {
-              setLoading(false);
-            }
-          }
-        });
-
-        (window as any).google.accounts.id.renderButton(
-          document.getElementById("google-signin-btn"),
-          { 
-            theme: "outline", 
-            size: "large",
-            width: 384,
-            text: "signin_with",
-            shape: "rectangular"
-          }
-        );
-      }
-    };
-
-    const checkInterval = setInterval(() => {
-      if ((window as any).google) {
-        initGoogle();
-        clearInterval(checkInterval);
-      }
-    }, 100);
-
-    return () => clearInterval(checkInterval);
-  }, [googleClientId, isDemoMode, loginWithGoogle, onLoginSuccess]);
-
-  const handleDemoGoogleLogin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await loginWithGoogle('dev_demo_google_token');
-      const token = localStorage.getItem('token');
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        onLoginSuccess(payload.role);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Google Sign-In failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,31 +114,7 @@ const Login: React.FC<LoginProps> = ({ onToggleAuthMode, onLoginSuccess }) => {
           </button>
         </form>
 
-        {/* Google Authentication divider and button */}
-        <div className="relative my-6 flex items-center justify-center">
-          <div className="border-t border-slate-200 w-full absolute"></div>
-          <span className="bg-white px-4 text-[10px] font-bold text-slate-400 z-10 relative uppercase tracking-wider">or continue with</span>
-        </div>
 
-        <div className="w-full flex justify-center">
-          {isDemoMode ? (
-            <button
-              onClick={handleDemoGoogleLogin}
-              type="button"
-              className="w-full max-w-[384px] flex items-center justify-center space-x-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold py-2.5 px-4 rounded-xl transition-all shadow-sm cursor-pointer hover:scale-[1.01] active:scale-[0.99] text-sm"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69a5.74 5.74 0 0 1-2.49 3.77v3.1h3.97c2.33-2.14 3.57-5.3 3.57-8.72z" />
-                <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.97-3.1a7.18 7.18 0 0 1-11.99-3.77H1.93v3.2c1.98 3.93 6.03 6.58 10.07 6.58z" />
-                <path fill="#FBBC05" d="M6 14.22a7.24 7.24 0 0 1 0-4.44V6.58H1.93a12 12 0 0 0 0 10.84L6 14.22z" />
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.6 4.6 1.8l3.43-3.43A11.96 11.96 0 0 0 12 0C7.97 0 3.92 2.65 1.93 6.58L6 9.78a7.18 7.18 0 0 1 6-5.03z" />
-              </svg>
-              <span>Sign In with Google</span>
-            </button>
-          ) : (
-            <div id="google-signin-btn" className="w-full max-w-[384px]"></div>
-          )}
-        </div>
 
         {/* Footer Info */}
         <div className="mt-8 text-center text-xs text-slate-500 border-t border-slate-100 pt-6">
