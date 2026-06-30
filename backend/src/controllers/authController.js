@@ -151,15 +151,28 @@ const sendOtp = async (req, res) => {
     // 5. Send OTP via Nodemailer
     let transporter;
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      transporter = nodemailer.createTransport({
+      const isGmail = process.env.SMTP_HOST.includes('gmail.com');
+      const transportConfig = isGmail ? {
+        service: 'gmail',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        },
+        connectionTimeout: 10000, // 10 seconds timeout
+        socketTimeout: 15000
+      } : {
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT) || 587,
         secure: process.env.SMTP_SECURE === 'true',
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS
-        }
-      });
+        },
+        connectionTimeout: 10000,
+        socketTimeout: 15000
+      };
+      
+      transporter = nodemailer.createTransport(transportConfig);
     } else {
       // Fallback Ethereal
       const testAccount = await nodemailer.createTestAccount();
